@@ -1,0 +1,79 @@
+name: schema-registry
+version: 6.1.1
+summary: Schema registry for kafka clusters
+description: provides a serving layer for the kafka cluster metadata.
+  It provides a REST API to manage schemas information in Avro, JSON
+  and Protobuf.
+
+confinement: strict
+grade: stable
+base: core18
+architectures: [amd64]
+assumes: [snapd2.49]
+
+parts:
+  schema-registry:
+    plugin: maven
+    source: https://github.com/phvalguima/schema-registry
+    source-tag: 6.1.1-post
+    source-type: git
+    maven-options:
+      [-Pstandalone, -DskipTests=true, -Dmaven.compiler.debug=true]
+    build-packages:
+      - wget
+    override-prime: |
+      snapcraftctl prime
+      mkdir -p /root/prime/bin/scripts/
+      mkdir -p /root/prime/bin/share/java/schema-registry/
+      # Download prometheus exporter jar
+      wget -qO ${SNAPCRAFT_PRIME}/jar/jmx_prometheus_javaagent.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.15.0/jmx_prometheus_javaagent-0.15.0.jar
+      cp /root/parts/schema-registry/src/bin/schema-registry-run-class bin/scripts/schema-registry-run-class
+      cp /root/parts/schema-registry/src/bin/schema-registry-stop-service bin/scripts/schema-registry-stop-service
+      cp /root/parts/schema-registry/src/bin/kafka-avro-console-producer bin/scripts/kafka-avro-console-producer
+      cp /root/parts/schema-registry/src/bin/kafka-avro-console-consumer bin/scripts/kafka-avro-console-consumer
+      cp /root/parts/schema-registry/src/bin/kafka-json-schema-console-consumer bin/scripts/kafka-json-schema-console-consumer
+      cp /root/parts/schema-registry/src/bin/kafka-json-schema-console-producer bin/scripts/kafka-json-schema-console-producer
+      cp /root/parts/schema-registry/src/bin/kafka-protobuf-console-consumer bin/scripts/kafka-protobuf-console-consumer
+      cp /root/parts/schema-registry/src/bin/kafka-protobuf-console-producer bin/scripts/kafka-protobuf-console-producer
+      # Copying jars
+      cp /root/parts/schema-registry/build/benchmark/target/kafka-schema-registry-benchmark-6.1.1.jar /root/prime/bin/share/java/schema-registry/
+      cp /root/parts/schema-registry/build/client/target/kafka-schema-registry-client-6.1.1.jar /root/prime/bin/share/java/schema-registry/
+      cp /root/parts/schema-registry/build/package-schema-registry/target/kafka-schema-registry-package-6.1.1-standalone.jar /root/prime/bin/share/java/schema-registry/
+apps:
+  schema-registry:
+    command: bin/scripts/schema-registry-run-class io.confluent.kafka.schemaregistry.rest.SchemaRegistryMain ${SNAP_COMMON}/schema-registry.properties
+    daemon: simple
+    plugs: 
+      - network-bind
+      - network
+  kafka-avro-console-producer:
+    command: bin/scripts/kafka-avro-console-producer
+    plugs:
+      - network-bind
+      - network
+  kafka-avro-console-consumer:
+    command: bin/scripts/kafka-avro-console-consumer
+    plugs:
+      - network-bind
+      - network
+  kafka-json-schema-console-producer:
+    command: bin/scripts/kafka-json-schema-console-producer
+    plugs:
+      - network-bind
+      - network
+  kafka-json-schema-console-consumer:
+    command: bin/scripts/kafka-json-schema-console-consumer
+    plugs:
+      - network-bind
+      - network
+  kafka-protobuf-console-producer:
+    command: bin/scripts/kafka-protobuf-console-producer
+    plugs:
+      - network-bind
+      - network
+  kafka-protobuf-console-consumer:
+    command: bin/scripts/kafka-protobuf-console-consumer
+    plugs:
+      - network-bind
+      - network
+
